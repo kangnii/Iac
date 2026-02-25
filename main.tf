@@ -28,3 +28,16 @@ resource "openstack_compute_instance_v2" "main" {
     name = "Ext-Net"
   }
 }
+
+output "instance_ip" {
+  description = "Public IPv4 of the provisioned VM"
+  value       = coalesce(
+    try(openstack_compute_instance_v2.main.access_ip_v4, null),
+    try(openstack_compute_instance_v2.main.network[0].fixed_ip_v4, null)
+  )
+}
+
+output "instance_name" {
+  description = "VM name"
+  value       = openstack_compute_instance_v2.main.name
+}
