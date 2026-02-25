@@ -3,7 +3,7 @@ Duo Iac porject top1
 
 ## Pré-requis
 - Python 3.112.x min
-- OpenTofu
+- OpenTofu (sudo snap install tofu --classic)
 - Compte cloud OVH
 - clés SSH
 - Docker

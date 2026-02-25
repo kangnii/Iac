@@ -13,6 +13,13 @@ if [[ ! -x "$INVENTORY_SCRIPT" ]]; then
   chmod +x "$INVENTORY_SCRIPT"
 fi
 
+PLAN_FILE="$ROOT_DIR/.tofu.plan"
+
+tofu -chdir="$ROOT_DIR" init -input=false
+tofu -chdir="$ROOT_DIR" plan -input=false -out="$PLAN_FILE"
+tofu -chdir="$ROOT_DIR" apply -input=false -auto-approve "$PLAN_FILE"
+rm -f "$PLAN_FILE"
+
 ansible-playbook \
   -i "$INVENTORY_SCRIPT" \
   "$PLAYBOOK_PATH" \
