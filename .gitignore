@@ -1,6 +1,6 @@
-*/ clouds.yaml 
-*/ terraform.tfstate 
-*/ terraform.tfstate.backup
-*/ inventory.yml 
-*/ .terraform/ 
-*/ .venv
+clouds.yaml 
+terraform.tfstate 
+terraform.tfstate.backup
+inventory.yml 
+.terraform/ 
+.venv
