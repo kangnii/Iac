@@ -1,6 +1,6 @@
 clouds.yaml 
 terraform.tfstate 
 terraform.tfstate.backup
-inventory.yml 
+inventory.ini
 .terraform/ 
 .venv
