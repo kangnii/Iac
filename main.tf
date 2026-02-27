@@ -13,13 +13,8 @@ terraform {
     skip_credentials_validation = true
     skip_region_validation      = true
     skip_metadata_api_check     = true
-    skip_requesting_account_id  = true 
+    skip_requesting_account_id  = true
   }
-}
-
-variable "ssh_public_key" {
-  description = "/home/wisdom-follygan/Téléchargements/ssh-key-2026-02-19.pub"
-  type        = string
 }
 
 # Utilise les variables OS_* (source openrc-etudiant.sh)
@@ -27,9 +22,21 @@ provider "openstack" {
   # Auth via variables d'environnement (OS_AUTH_URL, OS_USERNAME, etc.)
 }
 
+variable "ssh_public_key" {
+  description = "SSH public key for OpenStack keypair"
+  type        = string
+  default     = ""
+}
+
+locals {
+  ssh_public_key_effective = trimspace(
+    var.ssh_public_key != "" ? var.ssh_public_key : file("/home/wisdom-follygan/Téléchargements/ssh-key-2026-02-19.key.pub")
+  )
+}
+
 resource "openstack_compute_keypair_v2" "main" {
   name       = "my-keypair-wisdom"
-  public_key = trimspace(var.ssh_public_key)
+  public_key = local.ssh_public_key_effective
 }
 
 resource "openstack_compute_instance_v2" "main" {
