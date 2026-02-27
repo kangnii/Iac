@@ -62,6 +62,5 @@ jobs:
           OS_IDENTITY_API_VERSION: ${{ secrets.OS_IDENTITY_API_VERSION }}
           NODE_IP: ${{ env.VM_IP }}
         run: |
-          cd ansible
           # Utilisation de l'inventaire dynamique
-          ansible-playbook -i inventory.sh playbook.yml
+          ./scripts/run-playbook.sh 
