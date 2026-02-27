@@ -38,3 +38,4 @@ export AWS_DEFAULT_REGION="eu-west-3"
 
 export AWS_EC2_METADATA_DISABLED="true"
 
+ 
