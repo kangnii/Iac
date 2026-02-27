@@ -66,8 +66,7 @@ jobs:
         run: |
           set -euo pipefail
           required_vars=(
-            OS_AUTH_URL OS_IDENTITY_API_VERSION OS_TENANT_ID OS_TENANT_NAME
-            OS_PROJECT_ID OS_PROJECT_NAME OS_USERNAME OS_PASSWORD
+            OS_AUTH_URL OS_IDENTITY_API_VERSION OS_TENANT_ID OS_TENANT_NAME OS_USERNAME OS_PASSWORD
             OS_REGION_NAME AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION
             TF_VAR_ssh_public_key SSH_KEY_PATH
           )
@@ -97,8 +96,8 @@ jobs:
           export OS_PASSWORD="$(clean_secret "${OS_PASSWORD}")"
           export OS_TENANT_ID="$(clean_secret "${OS_TENANT_ID}")"
           export OS_TENANT_NAME="$(clean_secret "${OS_TENANT_NAME}")"
-          export OS_PROJECT_ID="${OS_PROJECT_ID:-$OS_TENANT_ID}"
-          export OS_PROJECT_NAME="${OS_PROJECT_NAME:-$OS_TENANT_NAME}"
+          export OS_PROJECT_ID="$OS_TENANT_ID"
+          export OS_PROJECT_NAME="$OS_TENANT_NAME"
           export OS_USER_DOMAIN_NAME="$(clean_secret "${OS_USER_DOMAIN_NAME:-Default}")"
           export OS_PROJECT_DOMAIN_NAME="$(clean_secret "${OS_PROJECT_DOMAIN_NAME:-Default}")"
 
@@ -118,6 +117,7 @@ jobs:
             --os-username "$OS_USERNAME" \
             --os-password "$OS_PASSWORD" \
             --os-project-id "$OS_PROJECT_ID" \
+            --os-project-name "$OS_PROJECT_NAME" \
             --os-user-domain-name "$OS_USER_DOMAIN_NAME" \
             --os-project-domain-name "$OS_PROJECT_DOMAIN_NAME" \
             --os-region-name "$OS_REGION_NAME" \
