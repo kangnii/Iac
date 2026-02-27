@@ -84,20 +84,22 @@ jobs:
       - name: Validate OpenStack authentication
         run: |
           set -euo pipefail
+
           clean_secret() {
-            # Remove CR/LF and surrounding quotes often introduced by copy/paste.
             printf '%s' "$1" | tr -d '\r\n' | sed -E 's/^"(.*)"$/\1/; s/^'\''(.*)'\''$/\1/'
           }
 
           export OS_AUTH_URL="$(clean_secret "${OS_AUTH_URL}")"
           export OS_USERNAME="$(clean_secret "${OS_USERNAME}")"
           export OS_PASSWORD="$(clean_secret "${OS_PASSWORD}")"
-          export OS_TENANT_ID="$(clean_secret "${OS_TENANT_ID}")"
-          export OS_TENANT_NAME="$(clean_secret "${OS_TENANT_NAME}")"
           export OS_USER_DOMAIN_NAME="$(clean_secret "${OS_USER_DOMAIN_NAME:-Default}")"
           export OS_PROJECT_DOMAIN_NAME="$(clean_secret "${OS_PROJECT_DOMAIN_NAME:-Default}")"
+          export OS_REGION_NAME="$(clean_secret "${OS_REGION_NAME}")"
 
-          # Non-sensitive debug to validate mapping.
+          # Force stable auth values.
+          export OS_AUTH_TYPE=password
+          export OS_IDENTITY_API_VERSION=3
+
           echo "OS_AUTH_URL=${OS_AUTH_URL}"
           echo "OS_USERNAME length=${#OS_USERNAME}"
           echo "OS_REGION_NAME=${OS_REGION_NAME}"
@@ -105,9 +107,11 @@ jobs:
           echo "OS_PROJECT_DOMAIN_NAME=${OS_PROJECT_DOMAIN_NAME}"
 
           . .venv/bin/activate
+
           openstack \
             --os-auth-url "$OS_AUTH_URL" \
-            --os-identity-api-version "$OS_IDENTITY_API_VERSION" \
+            --os-auth-type password \
+            --os-identity-api-version 3 \
             --os-username "$OS_USERNAME" \
             --os-password "$OS_PASSWORD" \
             --os-user-domain-name "$OS_USER_DOMAIN_NAME" \
