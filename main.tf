@@ -18,7 +18,7 @@ terraform {
 }
 
 variable "ssh_public_key" {
-  description = "Public SSH key injected by CI or local environment"
+  description = "/home/wisdom-follygan/Téléchargements/ssh-key-2026-02-19.pub"
   type        = string
 }
 
