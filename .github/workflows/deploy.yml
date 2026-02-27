@@ -1,66 +1,130 @@
-name: Deploy Infrastructure
+name: Iac With Ansible
+
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
+      OS_AUTH_URL: ${{ secrets.OS_AUTH_URL }}
+      OS_IDENTITY_API_VERSION: ${{ secrets.OS_IDENTITY_API_VERSION }}
+      OS_PROJECT_ID: ${{ secrets.OS_PROJECT_ID }}
+      OS_PROJECT_NAME: ${{ secrets.OS_PROJECT_NAME }}
+      OS_USERNAME: ${{ secrets.OS_USERNAME }}
+      OS_PASSWORD: ${{ secrets.OS_PASSWORD }}
+      OS_USER_DOMAIN_NAME: "Default"
+      OS_PROJECT_DOMAIN_NAME: "Default"
+      OS_REGION_NAME: ${{ secrets.OS_REGION_NAME }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
       AWS_EC2_METADATA_DISABLED: "true"
+      OS_AUTH_TYPE: "v3password"
+      TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+      SSH_KEY_PATH: ${{ github.workspace }}/.ssh/id_rsa
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Install dependencies
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: latest
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y netcat-openbsd python3-pip
-          pip3 install ansible
-      - name: Install OpenTofu
+          sudo apt-get install -y jq
+
+      - name: Install Python dependencies
         run: |
-          curl -fsSL https://get.opentofu.org/install-opentofu.sh | sudo bash -s -- --install-method deb
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
       - name: Setup SSH key
         run: |
-          mkdir -p $HOME/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > $HOME/.ssh/id_rsa
-          chmod 600 $HOME/.ssh/id_rsa
-      - name: Setup OpenStack credentials
+          mkdir -p "${{ github.workspace }}/.ssh"
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > "${{ github.workspace }}/.ssh/id_rsa"
+          printf '%s\n' "${{ secrets.SSH_PUBLIC_KEY }}" > "${{ github.workspace }}/.ssh/id_rsa.pub"
+          chmod 600 "${{ github.workspace }}/.ssh/id_rsa"
+          chmod 644 "${{ github.workspace }}/.ssh/id_rsa.pub"
+
+      - name: Validate required secrets
         run: |
-          mkdir -p ~/.config/openstack
-          cat > ~/.config/openstack/clouds.yaml << YAML
-          clouds:
-            openstack:
-              auth:
-                auth_url: https://auth.cloud.ovh.net/v3
-                username: "${{ secrets.OS_USERNAME }}"
-                password: "${{ secrets.OS_PASSWORD }}"
-                project_name: "${{ secrets.OS_PROJECT_NAME }}"
-                project_id: "${{ secrets.OS_PROJECT_ID }}"
-                domain_name: "default"
-              region_name: "GRA9"
-              interface: public
-              identity_api_version: 3
-          YAML
-      - name: Tofu Init and Apply
-        timeout-minutes: 15
-        run: |
-          cd tofu
-          tofu init -upgrade
-          tofu apply -auto-approve
-          echo "NODE_IP=$(tofu output -raw instance_ip)" >> $GITHUB_ENV
-      - name: Wait for SSH
-        run: |
-          echo "Attente du demarrage de la VM..."
-          until nc -zvw5 $NODE_IP 22; do
-            sleep 5
+          set -euo pipefail
+          required_vars=(
+            OS_AUTH_URL OS_IDENTITY_API_VERSION OS_PROJECT_ID OS_PROJECT_NAME OS_USERNAME OS_PASSWORD
+            OS_REGION_NAME AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION
+            TF_VAR_ssh_public_key SSH_KEY_PATH
+          )
+          for v in "${required_vars[@]}"; do
+            if [ -z "${!v:-}" ]; then
+              echo "Missing required env var: $v"
+              exit 1
+            fi
           done
-      - name: Run Ansible
-        env:
-          ANSIBLE_HOST_KEY_CHECKING: "False"
+
+      - name: Validate OpenTofu
         run: |
-          cd ansible
-          ansible-playbook -i inventory.sh playbook.yml \
-            --private-key $HOME/.ssh/id_rsa \
-            -u ubuntu
+          tofu fmt -check
+          tofu init -input=false
+          tofu validate
+
+      - name: Validate OpenStack authentication
+        run: |
+          set -euo pipefail
+
+          clean_secret() {
+            printf '%s' "$1" | tr -d '\r\n' | sed -E 's/^"(.*)"$/\1/; s/^'\''(.*)'\''$/\1/'
+          }
+
+          export OS_AUTH_URL="$(clean_secret "${OS_AUTH_URL}")"
+          export OS_USERNAME="$(clean_secret "${OS_USERNAME}")"
+          export OS_PASSWORD="$(clean_secret "${OS_PASSWORD}")"
+          export OS_PROJECT_ID="$(clean_secret "${OS_PROJECT_ID}")"
+          export OS_PROJECT_NAME="$(clean_secret "${OS_PROJECT_NAME}")"
+          export OS_USER_DOMAIN_NAME="$(clean_secret "${OS_USER_DOMAIN_NAME:-Default}")"
+          export OS_PROJECT_DOMAIN_NAME="$(clean_secret "${OS_PROJECT_DOMAIN_NAME:-Default}")"
+          export OS_REGION_NAME="$(clean_secret "${OS_REGION_NAME}")"
+
+          # Force stable auth values.
+          export OS_AUTH_TYPE=password
+          export OS_IDENTITY_API_VERSION=3
+
+          echo "OS_AUTH_URL=${OS_AUTH_URL}"
+          echo "OS_USERNAME length=${#OS_USERNAME}"
+          echo "OS_PROJECT_ID=${OS_PROJECT_ID}"
+          echo "OS_PROJECT_NAME=${OS_PROJECT_NAME}"
+          echo "OS_REGION_NAME=${OS_REGION_NAME}"
+          echo "OS_USER_DOMAIN_NAME=${OS_USER_DOMAIN_NAME}"
+          echo "OS_PROJECT_DOMAIN_NAME=${OS_PROJECT_DOMAIN_NAME}"
+
+          . .venv/bin/activate
+
+          openstack \
+            --os-auth-url "$OS_AUTH_URL" \
+            --os-auth-type password \
+            --os-identity-api-version 3 \
+            --os-username "$OS_USERNAME" \
+            --os-password "$OS_PASSWORD" \
+            --os-user-domain-name "$OS_USER_DOMAIN_NAME" \
+            --os-project-domain-name "$OS_PROJECT_DOMAIN_NAME" \
+            --os-project-id "$OS_PROJECT_ID" \
+            --os-region-name "$OS_REGION_NAME" \
+            token issue
+
+      - name: Deploy Infra and Configure VM
+        run: |
+          . .venv/bin/activate
+          ./scripts/run-playbook.sh
