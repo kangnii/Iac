@@ -94,16 +94,12 @@ jobs:
           export OS_PASSWORD="$(clean_secret "${OS_PASSWORD}")"
           export OS_TENANT_ID="$(clean_secret "${OS_TENANT_ID}")"
           export OS_TENANT_NAME="$(clean_secret "${OS_TENANT_NAME}")"
-          export OS_PROJECT_ID="$OS_TENANT_ID"
-          export OS_PROJECT_NAME="$OS_TENANT_NAME"
           export OS_USER_DOMAIN_NAME="$(clean_secret "${OS_USER_DOMAIN_NAME:-Default}")"
           export OS_PROJECT_DOMAIN_NAME="$(clean_secret "${OS_PROJECT_DOMAIN_NAME:-Default}")"
 
           # Non-sensitive debug to validate mapping.
           echo "OS_AUTH_URL=${OS_AUTH_URL}"
           echo "OS_USERNAME length=${#OS_USERNAME}"
-          echo "OS_PROJECT_ID length=${#OS_PROJECT_ID}"
-          echo "OS_PROJECT_NAME=${OS_PROJECT_NAME}"
           echo "OS_REGION_NAME=${OS_REGION_NAME}"
           echo "OS_USER_DOMAIN_NAME=${OS_USER_DOMAIN_NAME}"
           echo "OS_PROJECT_DOMAIN_NAME=${OS_PROJECT_DOMAIN_NAME}"
@@ -114,8 +110,6 @@ jobs:
             --os-identity-api-version "$OS_IDENTITY_API_VERSION" \
             --os-username "$OS_USERNAME" \
             --os-password "$OS_PASSWORD" \
-            --os-project-id "$OS_PROJECT_ID" \
-            --os-project-name "$OS_PROJECT_NAME" \
             --os-user-domain-name "$OS_USER_DOMAIN_NAME" \
             --os-project-domain-name "$OS_PROJECT_DOMAIN_NAME" \
             --os-region-name "$OS_REGION_NAME" \
