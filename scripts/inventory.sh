@@ -5,7 +5,7 @@ set -euo pipefail
 # Expected output name: instance_ip
 
 SSH_USER="${SSH_USER:-ubuntu}"
-SSH_KEY_PATH="${SSH_KEY_PATH:-$HOME/.ssh/id_rsa}"
+SSH_KEY_PATH="${SSH_KEY_PATH:-$HOME/.ssh/id_ed25519}"
 TF_DIR="${TF_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 get_ip() {
