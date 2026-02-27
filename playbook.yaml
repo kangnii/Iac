@@ -48,6 +48,11 @@
         src: ./templates/traefik-stack.yml.j2
         dest: /home/ubuntu/traefik-stack.yml
 
+    - name: Créer le réseau overlay traefik_traefik_proxy
+      shell: |
+        docker network ls --filter name=traefik_traefik_proxy -q | grep -q . || \
+        docker network create --driver overlay --attachable traefik_traefik_proxy
+
     - name: Déployer la stack Traefik
       shell: docker stack deploy -c /home/ubuntu/traefik-stack.yml traefik
 

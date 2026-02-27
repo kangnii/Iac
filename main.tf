@@ -10,6 +10,7 @@ terraform {
     key                         = "terraform.tfstate"
     region                      = "gra"
     endpoint                    = "https://s3.gra.io.cloud.ovh.net"
+    force_path_style            = true
     skip_credentials_validation = true
     skip_region_validation      = true
     skip_metadata_api_check     = true
@@ -25,17 +26,15 @@ provider "openstack" {
 variable "ssh_public_key" {
   description = "SSH public key for OpenStack keypair"
   type        = string
-  default     = ""
+  # Pas de default → force TF_VAR_ssh_public_key en CI
 }
 
 locals {
-  ssh_public_key_effective = trimspace(
-    var.ssh_public_key != "" ? var.ssh_public_key : file("/home/wisdom-follygan/Téléchargements/ssh-key-2026-02-19.key.pub")
-  )
+  ssh_public_key_effective = trimspace(var.ssh_public_key)
 }
 
 resource "openstack_compute_keypair_v2" "main" {
-  name       = "my-keypair-wisdom"
+  name       = "my-keypairo-wisdom"
   public_key = local.ssh_public_key_effective
 }
 
