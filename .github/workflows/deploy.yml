@@ -18,8 +18,8 @@ jobs:
       OS_PROJECT_NAME: ${{ secrets.OS_TENANT_NAME }}
       OS_USERNAME: ${{ secrets.OS_USERNAME }}
       OS_PASSWORD: ${{ secrets.OS_PASSWORD }}
-      OS_USER_DOMAIN_NAME: ${{ secrets.OS_USER_DOMAIN_NAME }}
-      OS_PROJECT_DOMAIN_NAME: ${{ secrets.OS_PROJECT_DOMAIN_NAME }}
+      OS_USER_DOMAIN_NAME: "Default"
+      OS_PROJECT_DOMAIN_NAME: "Default"
       OS_REGION_NAME: ${{ secrets.OS_REGION_NAME }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -77,13 +77,6 @@ jobs:
               exit 1
             fi
           done
-
-          if [ -z "${OS_USER_DOMAIN_NAME:-}" ]; then
-            echo "OS_USER_DOMAIN_NAME=Default" >> "$GITHUB_ENV"
-          fi
-          if [ -z "${OS_PROJECT_DOMAIN_NAME:-}" ]; then
-            echo "OS_PROJECT_DOMAIN_NAME=Default" >> "$GITHUB_ENV"
-          fi
 
       - name: Validate OpenTofu
         run: |
