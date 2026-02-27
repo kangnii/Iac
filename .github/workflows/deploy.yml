@@ -14,12 +14,15 @@ jobs:
       OS_IDENTITY_API_VERSION: ${{ secrets.OS_IDENTITY_API_VERSION }}
       OS_TENANT_ID: ${{ secrets.OS_TENANT_ID }}
       OS_TENANT_NAME: ${{ secrets.OS_TENANT_NAME }}
+      OS_PROJECT_ID: ${{ secrets.OS_TENANT_ID }}
+      OS_PROJECT_NAME: ${{ secrets.OS_TENANT_NAME }}
       OS_USERNAME: ${{ secrets.OS_USERNAME }}
       OS_PASSWORD: ${{ secrets.OS_PASSWORD }}
+      OS_USER_DOMAIN_NAME: ${{ secrets.OS_REGION_NAME }}
       OS_REGION_NAME: ${{ secrets.OS_REGION_NAME }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: ${{ secrets.OS_REGION_NAME }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
       AWS_EC2_METADATA_DISABLED: "true"
       TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
       SSH_KEY_PATH: ${{ github.workspace }}/.ssh/id_rsa
@@ -54,6 +57,29 @@ jobs:
           mkdir -p "${{ github.workspace }}/.ssh"
           printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > "${{ github.workspace }}/.ssh/id_rsa"
           chmod 600 "${{ github.workspace }}/.ssh/id_rsa"
+
+      - name: Validate required secrets
+        run: |
+          set -euo pipefail
+          required_vars=(
+            OS_AUTH_URL OS_IDENTITY_API_VERSION OS_TENANT_ID OS_TENANT_NAME
+            OS_PROJECT_ID OS_PROJECT_NAME OS_USERNAME OS_PASSWORD
+            OS_REGION_NAME AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION
+            TF_VAR_ssh_public_key SSH_KEY_PATH
+          )
+          for v in "${required_vars[@]}"; do
+            if [ -z "${!v:-}" ]; then
+              echo "Missing required env var: $v"
+              exit 1
+            fi
+          done
+
+          if [ -z "${OS_USER_DOMAIN_NAME:-}" ]; then
+            echo "OS_USER_DOMAIN_NAME=Default" >> "$GITHUB_ENV"
+          fi
+          if [ -z "${OS_PROJECT_DOMAIN_NAME:-}" ]; then
+            echo "OS_PROJECT_DOMAIN_NAME=Default" >> "$GITHUB_ENV"
+          fi
 
       - name: Validate OpenTofu
         run: |
