@@ -17,10 +17,10 @@ Duo Iac porject top1
 - python3 -m venv .venv
 - python3 .venv/bin/activate
 - pip install requirements.txt
+- source ./openrc-etudiant.sh
 - tofu init
 - tofu plan
 - tofu apply
 - ansible-playbook -i inventory.ini playbook.yaml
-
 
 
