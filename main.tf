@@ -6,17 +6,21 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "iac-wisdom-terraform-state"
-    key    = "terraform.tfstate"
-    region = "gra"
-    endpoint = "https://s3.gra.io.cloud.ovh.net"
+    bucket                      = "iac-wisdom-terraform-state"
+    key                         = "terraform.tfstate"
+    region                      = "gra"
+    endpoint                    = "https://s3.gra.io.cloud.ovh.net"
     skip_credentials_validation = true
-    skip_region_validation = true
-    skip_metadata_api_check = true
-    skip_requesting_account_id = true
-    }
+    skip_region_validation      = true
+    skip_metadata_api_check     = true
+    skip_requesting_account_id  = true
   }
+}
 
+variable "ssh_public_key" {
+  description = "Public SSH key injected by CI or local environment"
+  type        = string
+}
 
 # Utilise les variables OS_* (source openrc-etudiant.sh)
 provider "openstack" {
@@ -25,7 +29,7 @@ provider "openstack" {
 
 resource "openstack_compute_keypair_v2" "main" {
   name       = "my-keypair-wisdom"
-  public_key = file("/home/wisdom-follygan/Téléchargements/ssh-key-2026-02-19.key.pub")
+  public_key = trimspace(var.ssh_public_key)
 }
 
 resource "openstack_compute_instance_v2" "main" {

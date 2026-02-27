@@ -1,0 +1,67 @@
+name: Iac With Ansible
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      OS_AUTH_URL: ${{ secrets.AUTH_URL }}
+      OS_IDENTITY_API_VERSION: ${{ secrets.OS_IDENTITY_API_VERSION }}
+      OS_TENANT_ID: ${{ secrets.OS_TENANT_ID }}
+      OS_TENANT_NAME: ${{ secrets.OS_TENANT_NAME }}
+      OS_USERNAME: ${{ secrets.OS_USERNAME }}
+      OS_PASSWORD: ${{ secrets.OS_PASSWORD }}
+      OS_REGION_NAME: ${{ secrets.OS_REGION_NAME }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.OS_REGION_NAME }}
+      AWS_EC2_METADATA_DISABLED: "true"
+      TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+      SSH_KEY_PATH: ${{ github.workspace }}/.ssh/id_rsa
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: latest
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Install Python dependencies
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p "${{ github.workspace }}/.ssh"
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > "${{ github.workspace }}/.ssh/id_rsa"
+          chmod 600 "${{ github.workspace }}/.ssh/id_rsa"
+
+      - name: Validate OpenTofu
+        run: |
+          tofu fmt -check
+          tofu init -input=false
+          tofu validate
+
+      - name: Deploy Infra and Configure VM
+        run: |
+          . .venv/bin/activate
+          ./scripts/run-playbook.sh
