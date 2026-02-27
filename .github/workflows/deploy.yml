@@ -123,7 +123,6 @@ jobs:
             --os-username "$OS_USERNAME" \
             --os-password "$OS_PASSWORD" \
             --os-project-id "$OS_PROJECT_ID" \
-            --os-project-name "$OS_PROJECT_NAME" \
             --os-user-domain-name "$OS_USER_DOMAIN_NAME" \
             --os-project-domain-name "$OS_PROJECT_DOMAIN_NAME" \
             --os-region-name "$OS_REGION_NAME" \
