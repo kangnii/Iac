@@ -18,12 +18,14 @@ jobs:
       OS_PROJECT_NAME: ${{ secrets.OS_TENANT_NAME }}
       OS_USERNAME: ${{ secrets.OS_USERNAME }}
       OS_PASSWORD: ${{ secrets.OS_PASSWORD }}
-      OS_USER_DOMAIN_NAME: ${{ secrets.OS_REGION_NAME }}
+      OS_USER_DOMAIN_NAME: ${{ secrets.OS_USER_DOMAIN_NAME }}
+      OS_PROJECT_DOMAIN_NAME: ${{ secrets.OS_PROJECT_DOMAIN_NAME }}
       OS_REGION_NAME: ${{ secrets.OS_REGION_NAME }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
       AWS_EC2_METADATA_DISABLED: "true"
+      OS_AUTH_TYPE: "v3password"
       TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
       SSH_KEY_PATH: ${{ github.workspace }}/.ssh/id_rsa
     steps:
@@ -86,6 +88,23 @@ jobs:
           tofu fmt -check
           tofu init -input=false
           tofu validate
+
+      - name: Validate OpenStack authentication
+        run: |
+          set -euo pipefail
+          # Normalize potential CRLF/newline issues from copied secrets.
+          export OS_AUTH_URL="$(printf '%s' "${OS_AUTH_URL}" | tr -d '\r')"
+          export OS_USERNAME="$(printf '%s' "${OS_USERNAME}" | tr -d '\r')"
+          export OS_PASSWORD="$(printf '%s' "${OS_PASSWORD}" | tr -d '\r')"
+          export OS_TENANT_ID="$(printf '%s' "${OS_TENANT_ID}" | tr -d '\r')"
+          export OS_TENANT_NAME="$(printf '%s' "${OS_TENANT_NAME}" | tr -d '\r')"
+          export OS_PROJECT_ID="${OS_PROJECT_ID:-$OS_TENANT_ID}"
+          export OS_PROJECT_NAME="${OS_PROJECT_NAME:-$OS_TENANT_NAME}"
+          export OS_USER_DOMAIN_NAME="${OS_USER_DOMAIN_NAME:-Default}"
+          export OS_PROJECT_DOMAIN_NAME="${OS_PROJECT_DOMAIN_NAME:-Default}"
+
+          . .venv/bin/activate
+          openstack token issue
 
       - name: Deploy Infra and Configure VM
         run: |
