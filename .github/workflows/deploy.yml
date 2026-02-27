@@ -10,7 +10,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      OS_AUTH_URL: ${{ secrets.AUTH_URL }}
+      OS_AUTH_URL: ${{ secrets.OS_AUTH_URL }}
       OS_IDENTITY_API_VERSION: ${{ secrets.OS_IDENTITY_API_VERSION }}
       OS_TENANT_ID: ${{ secrets.OS_TENANT_ID }}
       OS_TENANT_NAME: ${{ secrets.OS_TENANT_NAME }}
@@ -92,19 +92,42 @@ jobs:
       - name: Validate OpenStack authentication
         run: |
           set -euo pipefail
-          # Normalize potential CRLF/newline issues from copied secrets.
-          export OS_AUTH_URL="$(printf '%s' "${OS_AUTH_URL}" | tr -d '\r')"
-          export OS_USERNAME="$(printf '%s' "${OS_USERNAME}" | tr -d '\r')"
-          export OS_PASSWORD="$(printf '%s' "${OS_PASSWORD}" | tr -d '\r')"
-          export OS_TENANT_ID="$(printf '%s' "${OS_TENANT_ID}" | tr -d '\r')"
-          export OS_TENANT_NAME="$(printf '%s' "${OS_TENANT_NAME}" | tr -d '\r')"
+          clean_secret() {
+            # Remove CR/LF and surrounding quotes often introduced by copy/paste.
+            printf '%s' "$1" | tr -d '\r\n' | sed -E 's/^"(.*)"$/\1/; s/^'\''(.*)'\''$/\1/'
+          }
+
+          export OS_AUTH_URL="$(clean_secret "${OS_AUTH_URL}")"
+          export OS_USERNAME="$(clean_secret "${OS_USERNAME}")"
+          export OS_PASSWORD="$(clean_secret "${OS_PASSWORD}")"
+          export OS_TENANT_ID="$(clean_secret "${OS_TENANT_ID}")"
+          export OS_TENANT_NAME="$(clean_secret "${OS_TENANT_NAME}")"
           export OS_PROJECT_ID="${OS_PROJECT_ID:-$OS_TENANT_ID}"
           export OS_PROJECT_NAME="${OS_PROJECT_NAME:-$OS_TENANT_NAME}"
-          export OS_USER_DOMAIN_NAME="${OS_USER_DOMAIN_NAME:-Default}"
-          export OS_PROJECT_DOMAIN_NAME="${OS_PROJECT_DOMAIN_NAME:-Default}"
+          export OS_USER_DOMAIN_NAME="$(clean_secret "${OS_USER_DOMAIN_NAME:-Default}")"
+          export OS_PROJECT_DOMAIN_NAME="$(clean_secret "${OS_PROJECT_DOMAIN_NAME:-Default}")"
+
+          # Non-sensitive debug to validate mapping.
+          echo "OS_AUTH_URL=${OS_AUTH_URL}"
+          echo "OS_USERNAME length=${#OS_USERNAME}"
+          echo "OS_PROJECT_ID length=${#OS_PROJECT_ID}"
+          echo "OS_PROJECT_NAME=${OS_PROJECT_NAME}"
+          echo "OS_REGION_NAME=${OS_REGION_NAME}"
+          echo "OS_USER_DOMAIN_NAME=${OS_USER_DOMAIN_NAME}"
+          echo "OS_PROJECT_DOMAIN_NAME=${OS_PROJECT_DOMAIN_NAME}"
 
           . .venv/bin/activate
-          openstack token issue
+          openstack \
+            --os-auth-url "$OS_AUTH_URL" \
+            --os-identity-api-version "$OS_IDENTITY_API_VERSION" \
+            --os-username "$OS_USERNAME" \
+            --os-password "$OS_PASSWORD" \
+            --os-project-id "$OS_PROJECT_ID" \
+            --os-project-name "$OS_PROJECT_NAME" \
+            --os-user-domain-name "$OS_USER_DOMAIN_NAME" \
+            --os-project-domain-name "$OS_PROJECT_DOMAIN_NAME" \
+            --os-region-name "$OS_REGION_NAME" \
+            token issue
 
       - name: Deploy Infra and Configure VM
         run: |
